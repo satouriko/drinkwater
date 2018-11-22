@@ -95,7 +95,7 @@ ll inv(ll a, ll mod) {
 #### 递推
 
 ```cpp
-int[1] = 1;
+inv[1] = 1;
 for(int i = 2; i <= n; i++) {
     inv[i] = (mod - mod / i) * inv[mod % i] % mod;
 }
@@ -364,6 +364,35 @@ A003500
 
 2, 4, 14, 52, 194, 724, 2702, 10084, 37634, 140452, 524174, 1956244, 7300802, 27246964, 101687054, 379501252, 1416317954, 5285770564, 19726764302, 736212866644, 274758382274, 1025412242452, 3826890587534, 14282150107684
 
+### 康托展开
+
+```cpp
+int perm2num(int n, int *p) {
+    int num = 1, k = 1;
+    for (int i = n - 2; i >= 0; k *= n - (i--)) { // 下标从 0 开始
+        for (int j = i + 1; j < n; j++) {
+            if (p[j] < p[i]) num += k;
+        }
+    }
+    return num;
+}
+
+void num2perm(int n, int *p,int num) { // 将字典序号为 num 的全排列写入 p
+    num--;
+    for (int i = n - 1; i >= 0; i--) {
+        p[i] = num % (n - i);
+        num /= n - i;
+    }
+    for (int i = n - 1; i > 0; i--) {
+        for (int j = i - 1; j >= 0; j--) {
+            if (p[j] <= p[i]) p[i]++;
+        }
+    }
+    for (int i = 0; i < n; i++) p[i]++;
+    // p 的下标与值均从 0 开始
+}
+```
+
 ### 异或线性基
 
 ```cpp
@@ -391,6 +420,158 @@ void cal() {
 $p = \frac{a + b + c}{2}$
 
 $S = \sqrt{p(p - a)(p - b)(p - c)}$
+
+### 多圆面积交
+
+```cpp
+typedef long long LL;
+typedef unsigned long long ULL;
+typedef vector <int> VI;
+const int INF = 0x3f3f3f3f;
+const double eps = 1e-10;
+const int MOD = 100000007;
+const int MAXN = 1000010;
+const double PI = acos(-1.0);
+#define sqr(x) ((x)*(x))
+const int N = 1010;
+double area[N];
+int n;
+
+int dcmp(double x)
+{
+    if (x < -eps) return -1;
+    else return x > eps;
+}
+
+struct cp
+{
+    double x, y, r, angle;
+    int d;
+    cp() {}
+    cp(double xx, double yy, double ang = 0, int t = 0)
+    {
+        x = xx;
+        y = yy;
+        angle = ang;
+        d = t;
+    }
+    void get()
+    {
+        scanf("%lf%lf%lf", &x, &y, &r);
+        d = 1;
+    }
+} cir[N], tp[N * 2];
+
+double dis(cp a, cp b)
+{
+    return sqrt(sqr(a.x - b.x) + sqr(a.y - b.y));
+}
+
+double cross(cp p0, cp p1, cp p2)
+{
+    return (p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x);
+}
+
+int CirCrossCir(cp p1, double r1, cp p2, double r2, cp &cp1, cp &cp2)
+{
+    double mx = p2.x - p1.x, sx = p2.x + p1.x, mx2 = mx * mx;
+    double my = p2.y - p1.y, sy = p2.y + p1.y, my2 = my * my;
+    double sq = mx2 + my2, d = -(sq - sqr(r1 - r2)) * (sq - sqr(r1 + r2));
+    if (d + eps < 0) return 0;
+    if (d < eps) d = 0;
+    else d = sqrt(d);
+    double x = mx * ((r1 + r2) * (r1 - r2) + mx * sx) + sx * my2;
+    double y = my * ((r1 + r2) * (r1 - r2) + my * sy) + sy * mx2;
+    double dx = mx * d, dy = my * d;
+    sq *= 2;
+    cp1.x = (x - dy) / sq;
+    cp1.y = (y + dx) / sq;
+    cp2.x = (x + dy) / sq;
+    cp2.y = (y - dx) / sq;
+    if (d > eps) return 2;
+    else return 1;
+}
+
+bool circmp(const cp& u, const cp& v)
+{
+    return dcmp(u.r - v.r) < 0;
+}
+
+bool cmp(const cp& u, const cp& v)
+{
+    if (dcmp(u.angle - v.angle)) return u.angle < v.angle;
+    return u.d > v.d;
+}
+
+double calc(cp cir, cp cp1, cp cp2)
+{
+    double ans = (cp2.angle - cp1.angle) * sqr(cir.r)
+                 - cross(cir, cp1, cp2) + cross(cp(0, 0), cp1, cp2);
+    return ans / 2;
+}
+
+void CirUnion(cp cir[], int n)
+{
+    cp cp1, cp2;
+    sort(cir, cir + n, circmp);
+    for (int i = 0; i < n; ++i)
+        for (int j = i + 1; j < n; ++j)
+            if (dcmp(dis(cir[i], cir[j]) + cir[i].r - cir[j].r) <= 0)
+                cir[i].d++;
+    for (int i = 0; i < n; ++i)
+    {
+        int tn = 0, cnt = 0;
+        for (int j = 0; j < n; ++j)
+        {
+            if (i == j) continue;
+            if (CirCrossCir(cir[i], cir[i].r, cir[j], cir[j].r,
+                            cp2, cp1) < 2) continue;
+            cp1.angle = atan2(cp1.y - cir[i].y, cp1.x - cir[i].x);
+            cp2.angle = atan2(cp2.y - cir[i].y, cp2.x - cir[i].x);
+            cp1.d = 1;
+            tp[tn++] = cp1;
+            cp2.d = -1;
+            tp[tn++] = cp2;
+            if (dcmp(cp1.angle - cp2.angle) > 0) cnt++;
+        }
+        tp[tn++] = cp(cir[i].x - cir[i].r, cir[i].y, PI, -cnt);
+        tp[tn++] = cp(cir[i].x - cir[i].r, cir[i].y, -PI, cnt);
+        sort(tp, tp + tn, cmp);
+        int p, s = cir[i].d + tp[0].d;
+        for (int j = 1; j < tn; ++j)
+        {
+            p = s;
+            s += tp[j].d;
+            area[p] += calc(cir[i], tp[j - 1], tp[j]);
+        }
+    }
+}
+
+void solve()
+{
+    scanf("%d", &n);
+    for (int i = 0; i < n; ++i)
+        cir[i].get();
+    memset(area, 0, sizeof(area));
+    CirUnion(cir, n);
+    //去掉重复计算的
+    for (int i = 1; i <= n; ++i)
+    {
+        area[i] -= area[i + 1];
+    }
+    //area[i]为重叠了i次的面积
+    //tot 为总面积
+    double tot = 0;
+    for(int i=1; i<=n; i++) tot += area[i];
+    printf("%f\n", tot);
+}
+
+int main()
+{
+    //freopen("input.txt", "r", stdin);
+    return 0;
+}
+```
 
 ## 数据结构
 
@@ -421,12 +602,32 @@ int sum(int x) {
 ### 线段树
 
 ```cpp
-#define lchild x << 1, l, mid
-#define rchild x << 1 | 1, mid + 1, r
+#define lnode x << 1
+#define rnode x << 1 | 1
+#define rlen (len >> 1)
+#define llen (len - rlen)
+#define lchild lnode, l, mid
+#define rchild rnode, mid + 1, r
+
+struct node {
+    int num, add;
+    int sum, min, max;
+};
+// 数组大小开 4 倍
+
+void push_up(int x) {
+    st[x].sum = st[lnode].sum + st[rnode].sum;
+    st[x].min = min(st[lnode].min, st[rnode].min);
+    st[x].max = max(st[lnode].max, st[rnode].max);
+}
 
 void build(int x = 1, int l = 1, int r = n) {
+    st[x].num = -INF;
+    st[x].add = 0;
     if (l == r) {
-        st[x] = a[l];
+        st[x].sum = a[l];
+        st[x].min = a[l];
+        st[x].max = a[l];
         return;
     }
     int mid = (l + r) >> 1;
@@ -435,74 +636,66 @@ void build(int x = 1, int l = 1, int r = n) {
     push_up(x);
 }
 
-// 区间求和
-void push_up(int x) {
-    st[x] = st[x << 1] + st[x << 1 | 1];
-}
-
 void push_down(int x, int len) {
-    st[x << 1] += mark[x] * (len - (len >> 1));
-    mark[x << 1] += mark[x];
-    st[x << 1 | 1] += mark[x] * (len >> 1);
-    mark[x << 1 | 1] += mark[x];
-    mark[x] = 0;
+    if (st[x].num != -INF) {
+        st[lnode].num = st[rnode].num = st[x].num;
+        st[lnode].add = st[rnode].add = 0;
+        st[lnode].sum = st[x].num * llen; st[rnode].sum = st[x].num * rlen;
+        st[lnode].min = st[rnode].min = st[x].num;
+        st[lnode].max = st[rnode].max = st[x].num;
+        st[x].num = -INF;
+    }
+
+    st[lnode].sum += st[x].add * llen; st[rnode].sum += st[x].add * rlen;
+    st[lnode].min += st[x].add; st[rnode].min += st[x].add;
+    st[lnode].max += st[x].add; st[rnode].max += st[x].add;
+    st[lnode].add += st[x].add; st[rnode].add += st[x].add;
+    st[x].add = 0;
 }
 
-void query(int L, int R, int x = 1, int l = 1, int r = n) {
-    if (L <= l && r <= R) return st[x];
-    if (mark[x]) push_down(x, r - l + 1);
-    int mid = (l + r) >> 1, ret = 0;
-    if (L <= mid) ret += query(L, R, lchild);
-    if (R > mid) ret += query(L, R, rchild);
-    return ret;
-}
-
-void update(int L, int R, int val, int x = 1, int l = 1, int r = n) {
+void update(int L, int R, int op, int val, int x = 1, int l = 1, int r = n) {
+    // op == 0 : cover, op == 1 : add
     if (L <= l && r <= R) {
-        st[x] += val * (r - l + 1);
-        mark[x] += val;
+        if (op == 0) {
+            st[x].num = st[x].min = st[x].max = val;
+            st[x].sum = val * (r - l + 1);
+            st[x].add = 0;
+        } else {
+            st[x].add += val;
+            st[x].sum += val * (r - l + 1);
+            st[x].min += val;
+            st[x].max += val;
+        }
         return;
     }
-    if (mark[x]) push_down(x, r - l + 1);
+    if (st[x].num != -INF || st[x].add != 0) push_down(x, r - l + 1);
     int mid = (l + r) >> 1;
-    if (L <= mid) update(L, R, val, lchild);
-    if (R > mid) update(L, R, val, rchild);
+    if (L <= mid) update(L, R, op, val, lchild);
+    if (R > mid) update(L, R, op, val, rchild);
     push_up(x);
 }
 
-// 区间求最大值
-void push_up(int x) {
-    st[x] = max(st[x << 1], st[x << 1 | 1]);
-}
-
-void push_down(int x) {
-    st[x << 1] += mark[x];
-    mark[x << 1] += mark[x];
-    st[x << 1 | 1] += mark[x];
-    mark[x << 1 | 1] += mark[x];
-    mark[x] = 0;
-}
-
-void query(int L, int R, int x = 1, int l = 1, int r = n) {
-    if (L <= l && r <= R) return st[x];
-    if (mark[x]) push_down(x);
-    int mid = (l + r) >> 1, ret = 0;
-    if (L <= mid) ret = max(ret, query(L, R, lchild));
-    if (R > mid) ret = max(ret, query(L, R, rchild));
-    return ret;
-}
-
-void update(int L, int R, int val, int x = 1, int l = 1, int r = n) {
+int query(int L, int R, int op, int x = 1, int l = 1, int r = n) {
+    // op == 0 : sum, op == 1 : min, op == 2 : max
     if (L <= l && r <= R) {
-        st[x] += val;
-        mark[x] += val;
-        return;
+        if (op == 0) return st[x].sum;
+        if (op == 1) return st[x].min;
+        return st[x].max;
     }
-    if (mark[x]) push_down(x);
-    int mid = (l + r) >> 1;
-    if (L <= mid) update(L, R, val, lchild);
-    if (R > mid) update(L, R, val, rchild);
-    push_up(x);
+    if (st[x].num != -INF || st[x].add != 0) push_down(x, r - l + 1);
+    int mid = (l + r) >> 1, ret = 0;
+    if (op == 1) ret = INF;
+    if (L <= mid) {
+        if (op == 0) ret += query(L, R, op, lchild);
+        if (op == 1) ret = min(ret, query(L, R, op, lchild));
+        if (op == 2) ret = max(ret, query(L, R, op, lchild));
+    }
+    if (R > mid) {
+        if (op == 0) ret += query(L, R, op, rchild);
+        if (op == 1) ret = min(ret, query(L, R, op, rchild));
+        if (op == 2) ret = max(ret, query(L, R, op, rchild));
+    }
+    return ret;
 }
 ```
 
@@ -638,8 +831,8 @@ int main() {
 ### KMP
 
 ```cpp
-void get_fail(char *p) {
-    int i = -1, j = 0, lenp = strlen(p);
+void get_fail(int *f, char *p, int lenp) {
+    int i = -1, j = 0;
     f[0] = -1;
     while (j < lenp) {
         if (i < 0 || p[i] == p[j]) {
@@ -650,8 +843,8 @@ void get_fail(char *p) {
     }
 }
 
-int kmp(char *t, char *p) {
-    int i = 0, j = 0, lent = strlen(t), lenp = strlen(p), ret = 0;
+int kmp(int *f, char *t, char *p, int lent, int lenp) {
+    int i = 0, j = 0, ret = 0;
     while (i < lent && j < lenp) {
         if (j < 0 || t[i] == p[j]) {
             if(j == lenp - 1) {
@@ -667,11 +860,44 @@ int kmp(char *t, char *p) {
 }
 ```
 
+### 最小循环节长度
+
+`strlen(p) - f[strlen(p)]` （注意当长度不被串长整除时它不是原串真正的循环节）
+
+### 公共前后缀
+
+```cpp
+void find(int now) {
+    if (f[now]) return;
+    find(f[now]);
+    printf("%d ", f[now]);
+}
+```
+
+### 最小表示法
+
+```cpp
+int minPos(char *s) {
+    int i = 0, j = 1, k = 0, len = strlen(s);
+    while (i < len && j < len && k < len) {
+        int t = s[(i + k) % len] - s[(j + k) % len];
+        if (t == 0) {
+            k++;
+        } else {
+            if (t > 0) i += k + 1;
+            else j += k + 1;
+            if (i == j) j++;
+            k = 0;
+        }
+    }
+    return min(i, j);
+}
+```
+
 ### Manacher
 
 ```cpp
-int manacher(char *p) {
-    char s[MAXN * 2];
+int manacher(char *s, int *len, char *p) {
     int lenp = strlen(p), k = 0;
     s[k++] = '@';
     s[k++] = '#';
@@ -681,15 +907,15 @@ int manacher(char *p) {
     }
     s[k++] = '~';
     s[k] = 0;
-    int max = 0, pos = 0, ret = 0;
+    int Max = 0, pos = 0, ret = 0;
     for (int i = 1; i < k; i++) {
-        if (max > i) {
-            len[i] = min(len[2 * pos - i], max - i);
+        if (Max > i) {
+            len[i] = min(len[pos * 2 - i], Max - i);
         } else len[i] = 1;
         while(s[i + len[i]] == s[i - len[i]]) len[i]++;
         ret = max(ret, len[i]);
-        if (len[i] + i > max) {
-            max = len[i] + i;
+        if (len[i] + i > Max) {
+            Max = len[i] + i;
             pos = i;
         }
     }
@@ -702,7 +928,7 @@ int manacher(char *p) {
 ```cpp
 struct trie {
     int next[maxn][26], end[maxn];
-    init root, cnt;
+    int root, cnt;
 
     int new_node() {
         memset(next[cnt], -1, sizeof(next[cnt]);
@@ -766,7 +992,7 @@ struct trie {
         fail[root] = root;
         for (int i = 0; i < 26; i++) {
             if (next[root][i] == -1) {
-                next[root[i] = root;
+                next[root][i] = root;
             } else {
                 fail[next[root][i]] = root;
                 q.push(next[root][i]);
@@ -858,22 +1084,24 @@ void da(int str[], int sa[], int rank[], int height[], int n, int m) {
 
 ## 图论
 
-__双向边开两倍！！！双向边开两倍！！！双向边开两倍！！！__
+**注意！！！**双向边开两倍！！！双向边开两倍！！！双向边开两倍！！！**注意！！！**
 
 ### 链式前向星
 
 ```cpp
 struct Edge {
-    int next, v, w;
+    int v, w, next;
 };
 
-void add(int u, int v, int w) {
-    edge[cnt].w = w;
-    edge[cnt].v = v;
-    edge[cnt].next = head[u];
+void add_edge(int u, int v, int w) {
+    edge[cnt] = Edge{v, w, head[u]};
     head[u] = cnt++;
 }
-// head[] 数组初始化为 -1
+
+void init() {
+    for (int i = 0; i <= n; i++) head[i] = -1;
+    cnt = 0;
+}
 ```
 
 ### 最短路
@@ -882,94 +1110,73 @@ void add(int u, int v, int w) {
 
 ##### Dijsktra
 
-###### 朴素写法
-
-```cpp
-for (int i = 1; i <= n; i++) dis[i] = INF;
-dis[s] = 0;
-for (int i = 1; i <= n; i++) {
-    int x, mind = INF;
-    for (int j = 1; j <= n; j++)
-        if (!f[j] && dis[j] < mind) {
-            mind = dis[j];
-            x = j;
-        }
-    f[x] = true;
-    for (int j = 1; j <= n; j++) dis[j] = min(dis[j], dis[x] + w[x][j]);
-}
-```
-
-###### 堆优化
-
 ```cpp
 bool vis[maxn];
-ll d[maxn];
+int d[maxn];
 
 struct E {
-    int v; ll w;
+    int v, w;
     bool operator <(const E &_) const {
         return w > _.w;
     }
 };
 
-void dis(int s, int n) {
+void dis() {
     for (int i = 1; i <= n; i++) {
         d[i] = INF;
-        vis[i] = 0;
+        vis[i] = false;
     }
-    vis[s] = 1; d[s] = 0;
+    vis[s] = true;
+    d[s] = 0;
     priority_queue<E> q;
     for (int i = head[s]; i + 1; i = edge[i].next) {
-        q.push((E) {edge[i].v, edge[i].w});
+        q.push(E{edge[i].v, edge[i].w});
     }
     while (!q.empty()) {
-        E tmp = q.top(); q.pop();
-        int v = tmp.v; ll w = tmp.w;
+        E tmp = q.top();
+        q.pop();
+        int v = tmp.v, w = tmp.w;
         if (vis[tmp.v]) continue;
         d[v] = w;
-        vis[v] = 1;
+        vis[v] = true;
         for (int i = head[v]; i + 1; i = edge[i].next) {
             if (!vis[edge[i].v])
-                q.push((E) {edge[i].v, d[v] + edge[i].w});
+                q.push(E{edge[i].v, d[v] + edge[i].w});
         }
     }
 }
 ```
 
-##### SPFA
+##### Bellman-Ford
 
 ```cpp
-// 返回 1 表示没有负环，否则表示存在负环。
-// 如果要判断全图是否有负环，初始化时将全部点入队列，否则初始化源点入队。
-bool vis[maxn];
-int top, num[maxn];
-double d[maxn];
-bool spfa(int n) {
-    queue<int> q;
-    while (!q.empty()) q.pop();
-    memset(num, 0, sizeof(num));
-    for (int i = 0; i < n; i++) {
-        vis[i] = 1;
-        d[i] = 0;
-        q.push(i);
-        num[i] = 1;
-    }
-    while(!q.empty()) {
-        int u = q.front(); q.pop();
-        vis[u] = 0;
-        for (int i = head[u]; i != -1; i = edge[i].next) {
-            int v = edge[i].v;
-            if (d[v] > d[u] + edge[i].w) {
-                d[v] = d[u] + edge[i].w;
-                if (!vis[v]) {
-                    vis[v] = 1;
-                    q.push(v);
-                    if (++num[v] > n) return 0;
-                }
+int dist[MAXN];
+struct Edge {
+    int u, v;
+    int cost;
+    Edge(int _u = 0, int _v = 0, int _cost = 0) : u(_u), v(_v), cost(_cost){}
+};
+vector<Edge> E;
+bool bellman_ford(int start, int n) {
+    for (int i = 1; i <= n; i++) dist[i] = INF;
+    dist[start] = 0;
+    for (int i = 1; i < n; i++) { // 最多做 n - 1 次
+        bool flag = false;
+        for (int j = 0; j < E.size(); j++) {
+            int u = E[j].u;
+            int v = E[j].v;
+            int cost = E[j].cost;
+            if (dist[v] > dist[u] + cost) {
+                dist[v] = dist[u] + cost;
+                flag = true;
             }
         }
+        if (!flag) return true;
     }
-    return 1;
+    for (int j = 0; j < E.size(); j++)
+        if (dist[E[j].v] > dist[E[j].u] + E[j].cost)
+            return false;
+    return true;
 }
 ```
 
@@ -1177,6 +1384,104 @@ int RMQ(int x, int y) {
 
 int LCA(int u, int v) {
     return E[RMQ(R[u], R[v])];
+}
+```
+
+### 树链剖分
+
+#### 单点求值
+
+#### 树链求值
+
+```cpp
+int pos, n, son[MAXN], num[MAXN], top[MAXN], p[MAXN], fp[MAXN], fa[MAXN], deep[MAXN], wfa[MAXN];
+
+void dfs1(int u, int pre, int d) {
+    deep[u] = d;
+    fa[u] = pre;
+    num[u] = 1;
+    for (int i = head[u]; i + 1; i = edge[i].next) {
+        int v = edge[i].v;
+        if (v == pre) continue;
+        dfs1(v, u, d + 1);
+        num[u] += num[v];
+        wfa[v] = edge[i].w;
+        if (son[u] == -1 || num[son[u]] < num[v]) {
+            son[u] = v;
+        }
+    }
+}
+
+void dfs2(int u, int sp) {
+    top[u] = sp;
+    pos++;
+    p[u] = pos;
+    fp[p[u]] = u;
+    if (son[u] == -1) return;
+    dfs2(son[u], sp);
+    for (int i = head[u]; i + 1; i = edge[i].next) {
+        int v = edge[i].v;
+        if (v != fa[u] && v != son[u]) {
+            dfs2(v, v);
+        }
+    }
+}
+
+void build_tree(int x, int l, int r) {
+    st[x].num = -INF;
+    st[x].add = 0;
+    if (l == r) {
+        st[x].sum = wfa[fp[l]];
+        st[x].min = wfa[fp[l]];
+        st[x].max = wfa[fp[l]];
+        return;
+    }
+    int mid = (l + r) >> 1;
+    build_tree(lchild);
+    build_tree(rchild);
+    push_up(x);
+}
+
+void init() {
+    for (int i = 0; i <= n + 5; i++) son[i] = -1;
+    pos = 0;
+    wfa[0] = 0;
+
+    dfs1(1, 0, 0);
+    dfs2(1, 1);
+    build_tree(1, 1, pos);
+}
+
+int solve(int u, int v, int op, int val) {
+    // op == 0 : 区间修改, op == 1 : 区间加, op == 2 : 区间和, op == 3 : 区间最小值, op == 4 : 区间最大值
+    int f1 = top[u], f2 = top[v], ret = 0;
+    if (op == 3) ret = INF;
+    while (f1 != f2) {
+        if (deep[f1] < deep[f2]) {
+            swap(u, v);
+            swap(f1, f2);
+        }
+        if (op == 2) {
+            ret += query(1, pos, 0, 1, p[f1], p[u]);
+        } else if (op == 3) {
+            ret = min(ret, query(1, pos, 1, 1, p[f1], p[u]));
+        } else if (op == 4) {
+            ret = max(ret, query(1, pos, 2, 1, p[f1], p[u]));
+        } else update(1, pos, val, op, 1, p[f1], p[u]);
+        u = fa[f1];
+        f1 = top[u];
+    }
+    if (u == v) {
+        return ret;
+    }
+    if (deep[u] > deep[v]) swap(u, v);
+    if (op == 2) {
+        return ret + query(1, pos, 0, 1, p[son[u]], p[v]);
+    } else if (op == 3) {
+        return min(ret, query(1, pos, 1, 1, p[son[u]], p[v]));
+    } else if (op == 4) {
+        return max(ret, query(1, pos, 2, 1, p[son[u]], p[v]));
+    } else update(1, pos, val, op, 1, p[son[u]], p[v]);
 }
 ```
 
@@ -1402,8 +1707,8 @@ for (int i = 1; i <= n; i++) {
 
 ### 最小割的最少割边数
 
-建边的时候每条边权 w = w * (E + 1) + 1
-这样得到最大流 maxflow / (E + 1)，最少割边数 maxflow % (E + 1)
+建边的时候每条边权 `w = w * (E + 1) + 1`
+这样得到最大流 `maxflow / (E + 1)`，最少割边数 `maxflow % (E + 1)`
 
 ### 求柱形图的最大面积
 
@@ -1612,6 +1917,49 @@ public class Main {
 }
 ```
 
+### 判断完全平方数
+
+```java
+private static final BigInteger TWO = BigInteger.valueOf(2);
+
+
+/**
+ * Computes the integer square root of a number.
+ *
+ * @param n  The number.
+ *
+ * @return  The integer square root, i.e. the largest number whose square
+ *     doesn't exceed n.
+ */
+public static BigInteger sqrt(BigInteger n)
+{
+    if (n.signum() >= 0)
+    {
+        final int bitLength = n.bitLength();
+        BigInteger root = BigInteger.ONE.shiftLeft(bitLength / 2);
+
+        while (!isSqrt(n, root))
+        {
+            root = root.add(n.divide(root)).divide(TWO);
+        }
+        return root;
+    }
+    else
+    {
+        throw new ArithmeticException("square root of negative number");
+    }
+}
+
+
+private static boolean isSqrt(BigInteger n, BigInteger root)
+{
+    final BigInteger lowerBound = root.pow(2);
+    final BigInteger upperBound = root.add(BigInteger.ONE).pow(2);
+    return lowerBound.compareTo(n) <= 0
+        && n.compareTo(upperBound) < 0;
+}
+```
+
 ## STL
 
 ### 结构体排序
@@ -1695,15 +2043,92 @@ for (int i = len - 1; i >= 0; i--) printf("%d", out[i]);
 printf("\n");
 ```
 
+## 注意事项 By:Claris
+
+### 战术研究
+
+* 读新题的优先级高于一切
+
+* 读完题之后必须看一遍clarification
+
+* 交题之前必须看一遍clarification
+
+* 可能有SPJ的题目提交前也应该尽量做到与样例输出完全一致
+
+* WA时需要检查 `INF` 是否设小
+
+* 构造题不可开场做
+
+* 每道题需至少有两个人确认题意
+
+* 上机之前做法需得到队友确认
+
+* 带有猜想性质的算法应放后面写
+
+* 当发现题目不会做但是过了一片时应冲一发暴力
+
+* 将待写的题按所需时间放入小根堆中，每次选堆顶的题目写
+
+* 交完题目后立马打印随后让出机器
+
+* 写题超过半小时应考虑是否弃题
+
+* 细节、公式等在上机前应在草稿纸上准备好，防止上机后越写越乱
+
+* 提交题目之前应检查 `solve(n,m)` 是否等于 `solve(m,n)`
+
+* 检查是否所有东西都已经清空
+
+* 对于中后期题应该考虑一人写题，另一人在一旁辅助，及时发现手误
+
+* 最后半小时不能慌张
+
+* 对于取模的题，在输出之前一定要再取模一次进行保险
+
+* 对于舍入输出，若 `abs` 不超过 `eps`，需要强行设置为 `0` 来防止 `−0.0000` 的出现。
+
+### 打表找规律方法
+
+* 直接找规律
+
+* 差分后找规律
+
+* 找积性
+
+* 点阵打表
+
+* 相除
+
+* 找循环节
+
+* 凑量纲
+
+* 猜想满足 $P(n)f(n)=Q(n)f(n−2)+R(n)f(n−1)+C$，其中$P$,$Q$,$R$都是关于$n$的二次多项式
+
+### ！！！！提醒！！！！
+
+* 一定要测试多组数据，以防数组未清空。
+
+* 排除前导 0 时要注意不要排除 0 自身。
+
 ## vimrc
 
 ```vimrc
+set nocompatible
+syntax on
+
 set bs=indent,eol,start cin nu ts=4 sw=4
-map <F4> :w<cr>:!gedit %<cr><cr>
-map <F5> :w<Cr>:!g++ %
-map <F6> <F5>;./a.out<cr>
-map <F7> :!vim in<cr><cr>
-map <F8> <F5>;./a.out < in<cr>
-map <F9> <F5>;./a.out < in > out<cr><cr>
-map <F10> :!vim out<cr><cr>
+map<F4> :w<cr>:!gedit %<cr><cr>
+map<F5> :w<cr>:!g++ -g -O2 -std=gnu++14 -static % -o bin.%:r
+map<F6> <F5> && ./bin.%:r<cr>
+map<F7> :!vim in.%:r<cr><cr>
+map<F8> <F5> && ./bin.%:r < in.%:r<cr>
+map<F9> <F5> && ./bin.%:r < in.%:r > out.%:r<cr><cr>
+map<F10> :!vim out.%:r<cr><cr>
+
+if has("autocmd")
+    au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+endif
+
+au FileType * setlocal formatoptions-=c formatoptions-=r formatoptions-=o
 ```
