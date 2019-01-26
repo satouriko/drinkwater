@@ -1589,7 +1589,7 @@ void tarjan(int n) {
 
 ```cpp
 // 用 #define type xxx 替代流的类型 (int, double, ll)
-// 极其关键：边数开两倍
+// 极其关键：边数开两倍，点数随实际使用往大了开！
 int n;
 int s, t;
 
@@ -2118,13 +2118,14 @@ set nocompatible
 syntax on
 
 set bs=indent,eol,start cin nu ts=4 sw=4
+map<F1> :w<cr>:!g++ -g -O2 -std=gnu++14 -static -Wall % -o %:r.bin
 map<F4> :w<cr>:!gedit %<cr><cr>
-map<F5> :w<cr>:!g++ -g -O2 -std=gnu++14 -static % -o bin.%:r
-map<F6> <F5> && ./bin.%:r<cr>
-map<F7> :!vim in.%:r<cr><cr>
-map<F8> <F5> && ./bin.%:r < in.%:r<cr>
-map<F9> <F5> && ./bin.%:r < in.%:r > out.%:r<cr><cr>
-map<F10> :!vim out.%:r<cr><cr>
+map<F5> <F1><cr>
+map<F6> <F1> && ./%:r.bin<cr>
+map<F7> :!vim %:r.in<cr><cr>
+map<F8> <F1> && ./%:r.bin < %:r.in<cr>
+map<F9> <F1> && ./%:r.bin < %:r.in > %:r.out<cr><cr>
+map<F10> :!vim %:r.out<cr><cr>
 
 if has("autocmd")
     au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
